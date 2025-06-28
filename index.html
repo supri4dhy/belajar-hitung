@@ -15,8 +15,11 @@
             touch-action: none;
         }
         .fruit {
-            width: 50px;
-            height: 50px;
+            /* Ukuran dikontrol oleh font-size, bukan width/height tetap */
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
             cursor: move;
             user-select: none;
             transition: transform 0.2s ease;
@@ -52,7 +55,7 @@
         .speaker-button {
             background: none;
             border: none;
-            font-size: 2rem;
+            font-size: 1.75rem; /* Ukuran ikon suara diperkecil */
             cursor: pointer;
             transition: transform 0.2s;
         }
@@ -67,66 +70,68 @@
         
         <!-- Halaman Menu Utama -->
         <div id="menu-screen">
-            <h1 class="text-3xl md:text-5xl text-blue-600 mb-8">Petualangan Angka Ajaib</h1>
-            <h2 class="text-xl md:text-2xl text-gray-700 mb-6">Pilih permainan:</h2>
+            <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-blue-600 mb-8">Petualangan Angka Ajaib</h1>
+            <h2 class="text-lg sm:text-xl md:text-2xl text-gray-700 mb-6">Pilih permainan:</h2>
             <div class="flex flex-col items-center gap-6">
-                <button id="btn-penjumlahan" class="menu-button w-full max-w-xs px-6 py-4 bg-yellow-400 hover:bg-yellow-500 text-white font-bold rounded-xl shadow-lg text-2xl md:text-3xl">Penjumlahan (+)</button>
-                <button id="btn-pengurangan" class="menu-button w-full max-w-xs px-6 py-4 bg-pink-400 hover:bg-pink-500 text-white font-bold rounded-xl shadow-lg text-2xl md:text-3xl">Pengurangan (-)</button>
+                <button id="btn-penjumlahan" class="menu-button w-full max-w-xs px-6 py-4 bg-yellow-400 hover:bg-yellow-500 text-white font-bold rounded-xl shadow-lg text-xl md:text-2xl">Penjumlahan (+)</button>
+                <button id="btn-pengurangan" class="menu-button w-full max-w-xs px-6 py-4 bg-pink-400 hover:bg-pink-500 text-white font-bold rounded-xl shadow-lg text-xl md:text-2xl">Pengurangan (-)</button>
             </div>
         </div>
 
         <!-- Halaman Permainan (Awalnya tersembunyi) -->
         <div id="game-screen" class="hidden">
             <div class="w-full flex justify-between items-center mb-2">
-                 <h1 class="text-xl md:text-2xl text-blue-600" id="game-title"></h1>
+                 <h1 class="text-lg md:text-xl text-blue-600" id="game-title"></h1>
                  <button id="btn-back" class="text-sm text-gray-500 hover:text-blue-600 px-3 py-1 rounded-lg bg-gray-100 hover:bg-gray-200">‹ Kembali</button>
             </div>
             
-            <div class="flex flex-col lg:flex-row lg:gap-6 lg:items-start">
+            <!-- Layout diubah menjadi flex-col dan sm:flex-row -->
+            <div class="flex flex-col sm:flex-row sm:gap-4 lg:gap-6 sm:items-start">
                 <!-- Kolom Kiri: Permainan Drag & Drop -->
-                <div class="lg:w-1/2 flex flex-col">
-                    <div id="problem-area" class="bg-gray-100 rounded-lg p-3 mb-4 text-3xl md:text-5xl text-gray-700 flex justify-center items-center gap-2 md:gap-4">
+                <div class="w-full sm:w-1/2 flex flex-col">
+                    <div id="problem-area" class="bg-gray-100 rounded-lg p-2 mb-2 text-2xl md:text-4xl text-gray-700 flex justify-center items-center gap-2">
                         <span id="num1"></span>
                         <span id="operator"></span>
                         <span id="num2"></span>
                         <span>=</span>
-                        <span id="answer-box" class="bg-white w-20 h-20 md:w-24 md:h-24 rounded-lg flex items-center justify-center shadow-inner text-gray-400">?</span>
+                        <span id="answer-box" class="bg-white w-16 h-16 md:w-20 rounded-lg flex items-center justify-center shadow-inner text-gray-400">?</span>
                         <button id="btn-narrate" class="speaker-button">🔊</button>
                     </div>
                     
-                    <div id="workspace" class="flex flex-col gap-4 min-h-[250px]">
+                    <div id="workspace" class="flex flex-col gap-2">
                         <div id="source-area" class="grid grid-cols-2 gap-2">
-                            <div id="source1" class="drop-zone bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg p-2 min-h-[120px] flex flex-wrap gap-1 justify-center items-center"></div>
-                            <div id="source2" class="drop-zone bg-green-50 border-2 border-dashed border-green-300 rounded-lg p-2 min-h-[120px] flex flex-wrap gap-1 justify-center items-center"></div>
+                            <div id="source1" class="drop-zone bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg p-2 min-h-[90px] md:min-h-[110px] flex flex-wrap gap-1 justify-center items-center"></div>
+                            <div id="source2" class="drop-zone bg-green-50 border-2 border-dashed border-green-300 rounded-lg p-2 min-h-[90px] md:min-h-[110px] flex flex-wrap gap-1 justify-center items-center"></div>
                         </div>
                         
                         <div id="target-area" class="flex justify-center items-center flex-col">
-                             <h2 id="instruction" class="text-lg md:text-xl text-gray-600 mb-2"></h2>
-                             <div id="basket" class="drop-zone w-full bg-orange-100 border-4 border-dashed border-orange-400 rounded-2xl p-2 min-h-[150px] flex flex-wrap gap-1 justify-center items-start"></div>
+                             <h2 id="instruction" class="text-base text-gray-600 mb-1"></h2>
+                             <div id="basket" class="drop-zone w-full bg-orange-100 border-4 border-dashed border-orange-400 rounded-2xl p-2 min-h-[100px] md:min-h-[120px] flex flex-wrap gap-1 justify-center items-start"></div>
                         </div>
 
-                        <div id="disposal-wrapper" class="hidden mt-2">
-                            <div id="disposal-area" class="drop-zone w-full bg-red-100 border-4 border-dashed border-red-400 rounded-2xl p-2 min-h-[120px] flex flex-wrap gap-1 justify-center items-center">
-                                <span class="text-4xl text-red-500 pointer-events-none">🗑️ Buang ke sini</span>
+                        <div id="disposal-wrapper" class="hidden mt-1">
+                            <div id="disposal-area" class="drop-zone w-full bg-red-100 border-4 border-dashed border-red-400 rounded-2xl p-2 min-h-[90px] md:min-h-[110px] flex flex-wrap gap-1 justify-center items-center">
+                                <span class="text-3xl text-red-500 pointer-events-none">🗑️ Buang ke sini</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Kolom Kanan: Area Menggambar dan Kontrol -->
-                <div class="lg:w-1/2 flex flex-col items-center mt-6 lg:mt-0">
+                <div class="w-full sm:w-1/2 flex flex-col items-center mt-4 sm:mt-0">
                     <div id="drawing-area" class="w-full flex flex-col items-center">
-                        <h3 id="drawing-instruction" class="text-lg md:text-xl font-semibold text-gray-700 mb-2">Sekarang, coba tulis jawabannya!</h3>
-                        <canvas id="drawing-canvas" width="300" height="150"></canvas>
-                        <div class="flex justify-center gap-4 mt-3">
-                             <button id="btn-check" class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg shadow-lg text-lg md:text-xl">Cek Jawaban</button>
-                             <button id="btn-clear-canvas" class="px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg shadow-lg text-lg md:text-xl">Hapus</button>
+                        <h3 id="drawing-instruction" class="text-base md:text-lg font-semibold text-gray-700 mb-2">Sekarang, coba tulis jawabannya!</h3>
+                        <!-- Ukuran canvas diperkecil -->
+                        <canvas id="drawing-canvas" width="260" height="130"></canvas>
+                        <div class="flex justify-center gap-4 mt-2">
+                             <button id="btn-check" class="px-4 py-2 text-base md:text-lg bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg shadow-lg">Cek</button>
+                             <button id="btn-clear-canvas" class="px-4 py-2 text-base md:text-lg bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg shadow-lg">Hapus</button>
                         </div>
                     </div>
 
-                    <div class="mt-4 flex flex-col items-center justify-center gap-4 w-full">
-                        <div id="feedback" class="text-xl text-center md:text-2xl font-bold h-16 flex items-center justify-center"></div>
-                        <button id="btn-new" class="w-full max-w-xs md:w-auto px-8 py-4 bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-lg shadow-lg text-xl md:text-2xl">Soal Baru</button>
+                    <div class="mt-3 flex flex-col items-center justify-center gap-3 w-full">
+                        <div id="feedback" class="text-lg text-center md:text-xl font-bold h-14 flex items-center justify-center"></div>
+                        <button id="btn-new" class="w-full max-w-xs px-6 py-3 text-lg md:text-xl bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-lg shadow-lg">Soal Baru</button>
                     </div>
                 </div>
             </div>
@@ -249,7 +254,7 @@
             feedbackEl.textContent = '';
             answerBoxEl.textContent = '?';
             answerBoxEl.classList.remove('text-green-500', 'text-red-500');
-            basketEl.innerHTML = ''; source1El.innerHTML = ''; source2El.innerHTML = ''; disposalArea.innerHTML = '<span class="text-4xl text-red-500 pointer-events-none">🗑️ Buang ke sini</span>';
+            basketEl.innerHTML = ''; source1El.innerHTML = ''; source2El.innerHTML = ''; disposalArea.innerHTML = '<span class="text-3xl text-red-500 pointer-events-none">🗑️ Buang ke sini</span>';
             drawingInstructionEl.textContent = 'Sekarang, coba tulis jawabannya!';
             clearCanvas();
             number1 = Math.floor(Math.random() * 9) + 1;
@@ -282,7 +287,8 @@
 
         function createFruit(emoji, id) {
             const fruitEl = document.createElement('div');
-            fruitEl.textContent = emoji; fruitEl.id = id; fruitEl.className = 'fruit text-4xl md:text-5xl'; fruitEl.draggable = true;
+            // Ukuran buah diubah di sini
+            fruitEl.textContent = emoji; fruitEl.id = id; fruitEl.className = 'fruit text-3xl md:text-4xl'; fruitEl.draggable = true;
             fruitEl.addEventListener('dragstart', handleDragStart); fruitEl.addEventListener('dragend', handleDragEnd);
             return fruitEl;
         }
@@ -294,8 +300,8 @@
             if (userAnswer === correctAnswer) {
                 playSfx('correct');
                 feedbackText = `Benar! Jawabannya adalah ${correctAnswer}. Hebat!`;
-                feedbackEl.innerHTML = `Benar! Jawabannya adalah ${correctAnswer} 🎉`;
-                feedbackEl.className = 'text-xl text-center md:text-2xl font-bold h-16 flex items-center justify-center text-green-500';
+                feedbackEl.innerHTML = `Benar! Jawabannya adalah ${correctAnswer} �`;
+                feedbackEl.className = 'text-lg text-center md:text-xl font-bold h-14 flex items-center justify-center text-green-500';
                 answerBoxEl.textContent = correctAnswer;
                 answerBoxEl.classList.add('text-green-500');
                 answerBoxEl.classList.remove('text-red-500', 'text-gray-400');
@@ -304,7 +310,7 @@
                 playSfx('incorrect');
                 feedbackText = 'Hmm, jumlah buahnya belum pas. Coba lagi yuk!';
                 feedbackEl.textContent = 'Jumlah buahnya belum pas, coba lagi yuk!';
-                feedbackEl.className = 'text-xl text-center md:text-2xl font-bold h-16 flex items-center justify-center text-red-500';
+                feedbackEl.className = 'text-lg text-center md:text-xl font-bold h-14 flex items-center justify-center text-red-500';
                 answerBoxEl.textContent = '?';
                 answerBoxEl.classList.add('text-red-500');
                 answerBoxEl.classList.remove('text-green-500', 'text-gray-400');
@@ -365,7 +371,6 @@
         window.addEventListener('DOMContentLoaded', () => {
             setupDropZones();
             setupCanvas();
-            // Tampilkan menu utama saat pertama kali load
             menuScreen.classList.remove('hidden');
             gameScreen.classList.add('hidden');
             mainContainer.addEventListener('click', () => {
@@ -377,3 +382,4 @@
     </script>
 </body>
 </html>
+�
