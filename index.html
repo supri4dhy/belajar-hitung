@@ -15,14 +15,17 @@
             touch-action: none;
         }
         .fruit {
-            /* Ukuran dikontrol oleh font-size, bukan width/height tetap */
             display: inline-flex;
             align-items: center;
             justify-content: center;
             line-height: 1;
             cursor: move;
             user-select: none;
-            transition: transform 0.2s ease;
+            transition: transform 0.2s ease-in-out; /* Animasi untuk membesar/mengecil */
+        }
+        .counting-active {
+            transform: scale(1.4); /* Efek membesar saat dihitung */
+            filter: brightness(1.1);
         }
         .dragging {
             opacity: 0.5;
@@ -55,7 +58,7 @@
         .speaker-button {
             background: none;
             border: none;
-            font-size: 1.75rem; /* Ukuran ikon suara diperkecil */
+            font-size: 1.75rem;
             cursor: pointer;
             transition: transform 0.2s;
         }
@@ -68,7 +71,6 @@
 
     <div id="main-container" class="w-full max-w-5xl bg-white rounded-2xl shadow-2xl p-4 md:p-6 text-center">
         
-        <!-- Halaman Menu Utama -->
         <div id="menu-screen">
             <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-blue-600 mb-8">Petualangan Angka Ajaib</h1>
             <h2 class="text-lg sm:text-xl md:text-2xl text-gray-700 mb-6">Pilih permainan:</h2>
@@ -78,21 +80,20 @@
             </div>
         </div>
 
-        <!-- Halaman Permainan (Awalnya tersembunyi) -->
         <div id="game-screen" class="hidden">
             <div class="w-full flex justify-between items-center mb-2">
                  <h1 class="text-lg md:text-xl text-blue-600" id="game-title"></h1>
                  <button id="btn-back" class="text-sm text-gray-500 hover:text-blue-600 px-3 py-1 rounded-lg bg-gray-100 hover:bg-gray-200">‹ Kembali</button>
             </div>
             
-            <!-- Layout diubah menjadi flex-col dan sm:flex-row -->
             <div class="flex flex-col sm:flex-row sm:gap-4 lg:gap-6 sm:items-start">
-                <!-- Kolom Kiri: Permainan Drag & Drop -->
                 <div class="w-full sm:w-1/2 flex flex-col">
                     <div id="problem-area" class="bg-gray-100 rounded-lg p-2 mb-2 text-2xl md:text-4xl text-gray-700 flex justify-center items-center gap-2">
-                        <span id="num1"></span>
+                        <span id="num1-icon"></span>
+                        <span id="num1-text"></span>
                         <span id="operator"></span>
-                        <span id="num2"></span>
+                        <span id="num2-icon"></span>
+                        <span id="num2-text"></span>
                         <span>=</span>
                         <span id="answer-box" class="bg-white w-16 h-16 md:w-20 rounded-lg flex items-center justify-center shadow-inner text-gray-400">?</span>
                         <button id="btn-narrate" class="speaker-button">🔊</button>
@@ -117,11 +118,9 @@
                     </div>
                 </div>
 
-                <!-- Kolom Kanan: Area Menggambar dan Kontrol -->
                 <div class="w-full sm:w-1/2 flex flex-col items-center mt-4 sm:mt-0">
                     <div id="drawing-area" class="w-full flex flex-col items-center">
                         <h3 id="drawing-instruction" class="text-base md:text-lg font-semibold text-gray-700 mb-2">Sekarang, coba tulis jawabannya!</h3>
-                        <!-- Ukuran canvas diperkecil -->
                         <canvas id="drawing-canvas" width="260" height="130"></canvas>
                         <div class="flex justify-center gap-4 mt-2">
                              <button id="btn-check" class="px-4 py-2 text-base md:text-lg bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg shadow-lg">Cek</button>
@@ -146,8 +145,10 @@
         const btnPengurangan = document.getElementById('btn-pengurangan');
         const btnBack = document.getElementById('btn-back');
         const gameTitleEl = document.getElementById('game-title');
-        const num1El = document.getElementById('num1');
-        const num2El = document.getElementById('num2');
+        const num1IconEl = document.getElementById('num1-icon');
+        const num1TextEl = document.getElementById('num1-text');
+        const num2IconEl = document.getElementById('num2-icon');
+        const num2TextEl = document.getElementById('num2-text');
         const operatorEl = document.getElementById('operator');
         const answerBoxEl = document.getElementById('answer-box');
         const sourceArea = document.getElementById('source-area');
@@ -167,8 +168,13 @@
         const ctx = canvas.getContext('2d');
 
         let currentMode = 'penjumlahan';
-        let number1, number2, correctAnswer;
-        const fruits = ['🍎', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍑'];
+        let number1, number2, correctAnswer, fruit1, fruit2;
+        const FRUITS_CATALOG = [
+            { name: 'Apel', emoji: '🍎' }, { name: 'Jeruk', emoji: '🍊' }, 
+            { name: 'Pisang', emoji: '🍌' }, { name: 'Anggur', emoji: '🍇' },
+            { name: 'Stroberi', emoji: '🍓' }, { name: 'Ceri', emoji: '🍒' },
+            { name: 'Mangga', emoji: '🥭' }, { name: 'Nanas', emoji: '🍍' }
+        ];
         let currentNarration = '';
 
         let sfxInitialized = false;
@@ -176,7 +182,6 @@
         async function initSfx() {
             if (sfxInitialized || typeof Tone === 'undefined') return;
             await Tone.start();
-            console.log("Audio context started");
             synth = new Tone.Synth({ volume: -8 }).toDestination();
             correctSynth = new Tone.PolySynth(Tone.Synth, { volume: -8 }).toDestination();
             incorrectSynth = new Tone.Synth({ oscillator: { type: 'square' }, volume: -12 }).toDestination();
@@ -184,13 +189,11 @@
         }
         function playSfx(type) {
             if (!sfxInitialized) return;
-            try {
-                const now = Tone.now();
-                if (type === 'correct') correctSynth.triggerAttackRelease(['C4', 'E4', 'G4'], '8n', now);
-                else if (type === 'incorrect') incorrectSynth.triggerAttackRelease('A2', '8n', now);
-                else if (type === 'click') synth.triggerAttackRelease('C5', '16n', now);
-                else if (type === 'drop') synth.triggerAttackRelease('G4', '16n', now);
-            } catch (error) { console.error("Error playing sound:", error); }
+            const now = Tone.now();
+            if (type === 'correct') correctSynth.triggerAttackRelease(['C4', 'E4', 'G4'], '8n', now);
+            else if (type === 'incorrect') incorrectSynth.triggerAttackRelease('A2', '8n', now);
+            else if (type === 'click') synth.triggerAttackRelease('C5', '16n', now);
+            else if (type === 'drop') synth.triggerAttackRelease('G4', '16n', now);
         }
 
         let indonesianVoice = null;
@@ -198,19 +201,10 @@
         function getAvailableVoices() {
             if (!voicePromise) {
                 voicePromise = new Promise(resolve => {
-                    if (!('speechSynthesis' in window)) {
-                        resolve([]);
-                        return;
-                    }
+                    if (!('speechSynthesis' in window)) { resolve([]); return; }
                     let voices = speechSynthesis.getVoices();
-                    if (voices.length > 0) {
-                        resolve(voices);
-                        return;
-                    }
-                    speechSynthesis.onvoiceschanged = () => {
-                        voices = speechSynthesis.getVoices();
-                        resolve(voices);
-                    };
+                    if (voices.length > 0) { resolve(voices); return; }
+                    speechSynthesis.onvoiceschanged = () => { voices = speechSynthesis.getVoices(); resolve(voices); };
                 });
             }
             return voicePromise;
@@ -218,30 +212,26 @@
         async function initializeVoice() {
             if (indonesianVoice) return;
             const voices = await getAvailableVoices();
-            indonesianVoice = voices.find(voice => voice.lang === 'id-ID' && /female|wanita|perempuan/i.test(voice.name)) 
-                              || voices.find(voice => voice.lang === 'id-ID');
-            if (indonesianVoice) {
-                console.log("Menggunakan suara:", indonesianVoice.name);
-            } else {
-                console.warn("Suara Bahasa Indonesia tidak ditemukan, akan menggunakan suara default browser.");
-            }
+            indonesianVoice = voices.find(v => v.lang === 'id-ID' && /female|wanita|perempuan/i.test(v.name)) || voices.find(v => v.lang === 'id-ID');
         }
-        async function speak(text) {
+        async function speak(text, interrupt = true) {
             if (!('speechSynthesis' in window)) return;
             await initializeVoice();
-            speechSynthesis.cancel();
+            if (interrupt) speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'id-ID';
-            utterance.rate = 0.9;
+            utterance.lang = 'id-ID'; utterance.rate = 1; utterance.pitch = 1.2;
             if (indonesianVoice) utterance.voice = indonesianVoice;
             speechSynthesis.speak(utterance);
+            return new Promise(resolve => {
+                utterance.onend = resolve;
+            });
         }
         
         let isDrawing = false, lastX = 0, lastY = 0;
-        function getMousePos(canvasDom, e) { const rect = canvasDom.getBoundingClientRect(); return { x: e.clientX - rect.left, y: e.clientY - rect.top }; }
-        function getTouchPos(canvasDom, e) { const rect = canvasDom.getBoundingClientRect(); return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top }; }
-        function startDrawing(e) { e.preventDefault(); isDrawing = true; let pos = e.touches ? getTouchPos(canvas, e) : getMousePos(canvas, e);[lastX, lastY] = [pos.x, pos.y]; }
-        function draw(e) { if (!isDrawing) return; e.preventDefault(); let pos = e.touches ? getTouchPos(canvas, e) : getMousePos(canvas, e); ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(pos.x, pos.y); ctx.stroke();[lastX, lastY] = [pos.x, pos.y]; }
+        function getMousePos(c, e) { const r = c.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+        function getTouchPos(c, e) { const r = c.getBoundingClientRect(); return { x: e.touches[0].clientX - r.left, y: e.touches[0].clientY - r.top }; }
+        function startDrawing(e) { e.preventDefault(); isDrawing = true; let p = e.touches ? getTouchPos(canvas, e) : getMousePos(canvas, e);[lastX, lastY] = [p.x, p.y]; }
+        function draw(e) { if (!isDrawing) return; e.preventDefault(); let p = e.touches ? getTouchPos(canvas, e) : getMousePos(canvas, e); ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.stroke();[lastX, lastY] = [p.x, p.y]; }
         function stopDrawing() { isDrawing = false; }
         function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
         function setupCanvas() {
@@ -257,65 +247,105 @@
             basketEl.innerHTML = ''; source1El.innerHTML = ''; source2El.innerHTML = ''; disposalArea.innerHTML = '<span class="text-3xl text-red-500 pointer-events-none">🗑️ Buang ke sini</span>';
             drawingInstructionEl.textContent = 'Sekarang, coba tulis jawabannya!';
             clearCanvas();
-            number1 = Math.floor(Math.random() * 9) + 1;
-            number2 = Math.floor(Math.random() * 9) + 1;
-            const randomFruit = fruits[Math.floor(Math.random() * fruits.length)];
-
+            
             if (currentMode === 'penjumlahan') {
-                if(number1 + number2 > 10) {
-                    number2 = Math.max(1, Math.floor(Math.random() * (10 - number1)));
+                num1IconEl.style.display = 'inline'; num2IconEl.style.display = 'inline';
+                let fruit1Index = Math.floor(Math.random() * FRUITS_CATALOG.length);
+                let fruit2Index;
+                do { fruit2Index = Math.floor(Math.random() * FRUITS_CATALOG.length); } while (fruit1Index === fruit2Index);
+                fruit1 = FRUITS_CATALOG[fruit1Index]; fruit2 = FRUITS_CATALOG[fruit2Index];
+                number1 = Math.floor(Math.random() * 5) + 1; number2 = Math.floor(Math.random() * 5) + 1;
+                correctAnswer = number1 + number2;
+                for (let i = 0; i < 10; i++) {
+                    source1El.appendChild(createFruit(fruit1, `f1-src-${i}`));
+                    source2El.appendChild(createFruit(fruit2, `f2-src-${i}`));
                 }
-                sourceArea.classList.remove('hidden');
-                disposalWrapper.classList.add('hidden');
-                correctAnswer = number1 + number2; operatorEl.textContent = '+'; gameTitleEl.textContent = 'Penjumlahan';
-                instructionEl.textContent = `Ayo gabungkan buahnya!`;
-                currentNarration = `${number1} ditambah ${number2} sama dengan berapa?`;
-                for (let i = 0; i < number1; i++) source1El.appendChild(createFruit(randomFruit, `fruit-s1-${i}`));
-                for (let i = 0; i < number2; i++) source2El.appendChild(createFruit(randomFruit, `fruit-s2-${i}`));
+                instructionEl.textContent = `Ambil ${number1} ${fruit1.name} dan ${number2} ${fruit2.name}`;
+                currentNarration = `Ambil ${number1} ${fruit1.name} dan ${number2} ${fruit2.name}`;
+                num1IconEl.textContent = fruit1.emoji; num1TextEl.textContent = number1;
+                num2IconEl.textContent = fruit2.emoji; num2TextEl.textContent = number2;
+                operatorEl.textContent = '+';
+                sourceArea.classList.remove('hidden'); disposalWrapper.classList.add('hidden');
+                gameTitleEl.textContent = 'Penjumlahan';
             } else { 
-                sourceArea.classList.add('hidden');
-                disposalWrapper.classList.remove('hidden');
-                if (number1 < number2) [number1, number2] = [number2, number1];
-                correctAnswer = number1 - number2; operatorEl.textContent = '-'; gameTitleEl.textContent = 'Pengurangan';
-                instructionEl.textContent = `Ayo ambil ${number2} buah dari keranjang!`;
-                currentNarration = `${number1} dikurang ${number2} sama dengan berapa?`;
-                for (let i = 0; i < number1; i++) basketEl.appendChild(createFruit(randomFruit, `fruit-b-${i}`));
+                num1IconEl.style.display = 'none'; num2IconEl.style.display = 'none';
+                number1 = Math.floor(Math.random() * 9) + 2;
+                number2 = Math.floor(Math.random() * (number1 - 1)) + 1;
+                fruit1 = FRUITS_CATALOG[Math.floor(Math.random() * FRUITS_CATALOG.length)];
+                correctAnswer = number1 - number2;
+                instructionEl.textContent = `Ambil ${number2} ${fruit1.name} dari keranjang!`;
+                currentNarration = `${number1} ${fruit1.name} dikurang ${number2} ${fruit1.name} sama dengan berapa?`;
+                for (let i = 0; i < number1; i++) { basketEl.appendChild(createFruit(fruit1, `f-bsk-${i}`)); }
+                num1TextEl.textContent = number1; num2TextEl.textContent = number2;
+                operatorEl.textContent = '-';
+                sourceArea.classList.add('hidden'); disposalWrapper.classList.remove('hidden');
+                gameTitleEl.textContent = 'Pengurangan';
             }
-            num1El.textContent = number1; num2El.textContent = number2;
             setTimeout(() => speak(currentNarration), 500);
         }
 
-        function createFruit(emoji, id) {
+        function createFruit(fruitObj, id) {
             const fruitEl = document.createElement('div');
-            // Ukuran buah diubah di sini
-            fruitEl.textContent = emoji; fruitEl.id = id; fruitEl.className = 'fruit text-3xl md:text-4xl'; fruitEl.draggable = true;
-            fruitEl.addEventListener('dragstart', handleDragStart); fruitEl.addEventListener('dragend', handleDragEnd);
+            fruitEl.textContent = fruitObj.emoji; fruitEl.id = id;
+            fruitEl.className = 'fruit text-3xl md:text-4xl';
+            fruitEl.dataset.fruitName = fruitObj.name;
+            fruitEl.draggable = true;
+            fruitEl.addEventListener('dragstart', handleDragStart);
+            fruitEl.addEventListener('dragend', handleDragEnd);
             return fruitEl;
         }
 
-        function checkAnswer() {
+        async function checkAnswer() {
             playSfx('click');
-            const userAnswer = basketEl.children.length;
-            let feedbackText;
-            if (userAnswer === correctAnswer) {
+            let isCorrect = false;
+
+            if (currentMode === 'penjumlahan') {
+                const fruitCounts = {};
+                for (const fruitNode of basketEl.children) {
+                    const name = fruitNode.dataset.fruitName;
+                    fruitCounts[name] = (fruitCounts[name] || 0) + 1;
+                }
+                if (fruitCounts[fruit1.name] === number1 && fruitCounts[fruit2.name] === number2 && Object.keys(fruitCounts).length === 2) {
+                    isCorrect = true;
+                }
+            } else { 
+                if (basketEl.children.length === correctAnswer) {
+                    isCorrect = true;
+                }
+            }
+
+            if (isCorrect) {
+                btnCheck.disabled = true;
+                btnNew.disabled = true;
+                
+                await speak("Ayo hitung bersama!", true);
+                
+                const fruitsInBasket = Array.from(basketEl.children);
+                for (let i = 0; i < fruitsInBasket.length; i++) {
+                    const fruitNode = fruitsInBasket[i];
+                    fruitNode.classList.add('counting-active');
+                    await speak(String(i + 1), false);
+                    fruitNode.classList.remove('counting-active');
+                }
+                
                 playSfx('correct');
-                feedbackText = `Benar! Jawabannya adalah ${correctAnswer}. Hebat!`;
-                feedbackEl.innerHTML = `Benar! Jawabannya adalah ${correctAnswer} �`;
+                const feedbackText = `Benar! Jawabannya adalah ${correctAnswer}. Hebat!`;
+                feedbackEl.innerHTML = `Benar! Jawabannya adalah ${correctAnswer} 🎉`;
                 feedbackEl.className = 'text-lg text-center md:text-xl font-bold h-14 flex items-center justify-center text-green-500';
                 answerBoxEl.textContent = correctAnswer;
                 answerBoxEl.classList.add('text-green-500');
-                answerBoxEl.classList.remove('text-red-500', 'text-gray-400');
-                drawingInstructionEl.textContent = 'Bagus! Bandingkan tulisanmu.';
+                speak(feedbackText, true);
+                btnCheck.disabled = false;
+                btnNew.disabled = false;
+
             } else {
                 playSfx('incorrect');
-                feedbackText = 'Hmm, jumlah buahnya belum pas. Coba lagi yuk!';
-                feedbackEl.textContent = 'Jumlah buahnya belum pas, coba lagi yuk!';
+                const feedbackText = 'Hmm, belum pas. Coba lagi yuk!';
+                feedbackEl.textContent = 'Hmm, belum pas. Coba lagi yuk!';
                 feedbackEl.className = 'text-lg text-center md:text-xl font-bold h-14 flex items-center justify-center text-red-500';
                 answerBoxEl.textContent = '?';
-                answerBoxEl.classList.add('text-red-500');
-                answerBoxEl.classList.remove('text-green-500', 'text-gray-400');
+                speak(feedbackText, true);
             }
-            speak(feedbackText);
         }
 
         function handleDragStart(e) { e.dataTransfer.setData('text/plain', e.target.id); setTimeout(() => e.target.classList.add('dragging'), 0); }
@@ -330,6 +360,16 @@
                     const id = e.dataTransfer.getData('text/plain'); const draggable = document.getElementById(id);
                     if (draggable) {
                         playSfx('drop');
+                        
+                        if (zone.id === 'basket' && currentMode === 'penjumlahan') {
+                            const fruitName = draggable.dataset.fruitName;
+                            const countInBasket = [...zone.children].filter(child => child.dataset.fruitName === fruitName).length;
+                            speak(String(countInBasket + 1), false);
+                        } else if (zone.id === 'basket') {
+                            const newCount = zone.children.length + 1;
+                            speak(String(newCount), false);
+                        }
+
                         if (zone.id === 'disposal-area' && zone.children.length === 1 && zone.children[0].tagName === 'SPAN') {
                             zone.innerHTML = '';
                         }
@@ -345,16 +385,8 @@
             generateProblem();
         }
         
-        btnPenjumlahan.addEventListener('click', () => { 
-            playSfx('click'); 
-            currentMode = 'penjumlahan'; 
-            startGame(); 
-        });
-        btnPengurangan.addEventListener('click', () => { 
-            playSfx('click'); 
-            currentMode = 'pengurangan'; 
-            startGame(); 
-        });
+        btnPenjumlahan.addEventListener('click', () => { playSfx('click'); currentMode = 'penjumlahan'; startGame(); });
+        btnPengurangan.addEventListener('click', () => { playSfx('click'); currentMode = 'pengurangan'; startGame(); });
         btnCheck.addEventListener('click', checkAnswer);
         btnNew.addEventListener('click', () => { playSfx('click'); generateProblem(); });
         btnClearCanvas.addEventListener('click', () => { playSfx('click'); clearCanvas(); });
@@ -364,22 +396,15 @@
             gameScreen.classList.add('hidden');
             menuScreen.classList.remove('hidden');
         });
-        btnNarrate.addEventListener('click', () => {
-            speak(currentNarration);
-        });
+        btnNarrate.addEventListener('click', () => speak(currentNarration));
 
         window.addEventListener('DOMContentLoaded', () => {
             setupDropZones();
             setupCanvas();
             menuScreen.classList.remove('hidden');
             gameScreen.classList.add('hidden');
-            mainContainer.addEventListener('click', () => {
-                initSfx();
-                initializeVoice();
-            }, { once: true });
+            mainContainer.addEventListener('click', () => { initSfx(); initializeVoice(); }, { once: true });
         });
-
     </script>
 </body>
 </html>
-�
