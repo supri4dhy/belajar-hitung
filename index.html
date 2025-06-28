@@ -21,10 +21,10 @@
             line-height: 1;
             cursor: move;
             user-select: none;
-            transition: transform 0.2s ease-in-out; /* Animasi untuk membesar/mengecil */
+            transition: transform 0.2s ease-in-out;
         }
         .counting-active {
-            transform: scale(1.4); /* Efek membesar saat dihitung */
+            transform: scale(1.4);
             filter: brightness(1.1);
         }
         .dragging {
@@ -43,10 +43,10 @@
              background-color: #fecaca !important;
              border-color: #ef4444 !important;
         }
-        .menu-button {
+        .menu-button, .action-button {
             transition: transform 0.2s ease-in-out;
         }
-        .menu-button:hover {
+        .menu-button:hover, .action-button:hover {
             transform: scale(1.05);
         }
         #drawing-canvas {
@@ -65,11 +65,31 @@
         .speaker-button:hover {
             transform: scale(1.1);
         }
+        /* Animasi Bintang */
+        .star-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .star {
+            position: absolute;
+            font-size: 2rem;
+            animation: fall 3s linear forwards;
+        }
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body class="bg-blue-100 flex items-center justify-center min-h-screen p-2 lg:p-4">
 
-    <div id="main-container" class="w-full max-w-5xl bg-white rounded-2xl shadow-2xl p-4 md:p-6 text-center">
+    <div id="main-container" class="w-full max-w-5xl bg-white rounded-2xl shadow-2xl p-4 md:p-6 text-center relative">
+        <div class="star-container" id="star-container"></div>
         
         <div id="menu-screen">
             <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-blue-600 mb-8">Petualangan Angka Ajaib</h1>
@@ -120,11 +140,15 @@
 
                 <div class="w-full sm:w-1/2 flex flex-col items-center mt-4 sm:mt-0">
                     <div id="drawing-area" class="w-full flex flex-col items-center">
-                        <h3 id="drawing-instruction" class="text-base md:text-lg font-semibold text-gray-700 mb-2">Sekarang, coba tulis jawabannya!</h3>
+                        <h3 id="drawing-instruction" class="text-base md:text-lg font-semibold text-gray-700 mb-2">2. Tulis Jawabanmu</h3>
                         <canvas id="drawing-canvas" width="260" height="130"></canvas>
-                        <div class="flex justify-center gap-4 mt-2">
-                             <button id="btn-check" class="px-4 py-2 text-base md:text-lg bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg shadow-lg">Cek</button>
-                             <button id="btn-clear-canvas" class="px-4 py-2 text-base md:text-lg bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg shadow-lg">Hapus</button>
+                        <div id="check-buttons-wrapper" class="flex justify-center gap-4 mt-2">
+                             <button id="btn-check" class="action-button px-4 py-2 text-base md:text-lg bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>Cek</button>
+                             <button id="btn-clear-canvas" class="action-button px-4 py-2 text-base md:text-lg bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg shadow-lg">Hapus</button>
+                        </div>
+                        <div id="confirmation-buttons-wrapper" class="hidden justify-center gap-4 mt-2">
+                             <button id="btn-confirm-yes" class="action-button px-6 py-2 text-base md:text-lg bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg shadow-lg">Ya</button>
+                             <button id="btn-confirm-no" class="action-button px-6 py-2 text-base md:text-lg bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg shadow-lg">Tidak</button>
                         </div>
                     </div>
 
@@ -164,6 +188,11 @@
         const btnNew = document.getElementById('btn-new');
         const btnClearCanvas = document.getElementById('btn-clear-canvas');
         const btnNarrate = document.getElementById('btn-narrate');
+        const checkButtonsWrapper = document.getElementById('check-buttons-wrapper');
+        const confirmationButtonsWrapper = document.getElementById('confirmation-buttons-wrapper');
+        const btnConfirmYes = document.getElementById('btn-confirm-yes');
+        const btnConfirmNo = document.getElementById('btn-confirm-no');
+        const starContainer = document.getElementById('star-container');
         const canvas = document.getElementById('drawing-canvas');
         const ctx = canvas.getContext('2d');
 
@@ -176,6 +205,8 @@
             { name: 'Mangga', emoji: '🥭' }, { name: 'Nanas', emoji: '🍍' }
         ];
         let currentNarration = '';
+        let fruitsAreCorrect = false;
+        let hasWritten = false;
 
         let sfxInitialized = false;
         let synth, correctSynth, incorrectSynth;
@@ -219,7 +250,7 @@
             await initializeVoice();
             if (interrupt) speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'id-ID'; utterance.rate = 1; utterance.pitch = 1.2;
+            utterance.lang = 'id-ID'; utterance.rate = 1.1; utterance.pitch = 1.2;
             if (indonesianVoice) utterance.voice = indonesianVoice;
             speechSynthesis.speak(utterance);
             return new Promise(resolve => {
@@ -230,23 +261,40 @@
         let isDrawing = false, lastX = 0, lastY = 0;
         function getMousePos(c, e) { const r = c.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
         function getTouchPos(c, e) { const r = c.getBoundingClientRect(); return { x: e.touches[0].clientX - r.left, y: e.touches[0].clientY - r.top }; }
-        function startDrawing(e) { e.preventDefault(); isDrawing = true; let p = e.touches ? getTouchPos(canvas, e) : getMousePos(canvas, e);[lastX, lastY] = [p.x, p.y]; }
+        function startDrawing(e) { 
+            e.preventDefault(); isDrawing = true; let p = e.touches ? getTouchPos(canvas, e) : getMousePos(canvas, e);[lastX, lastY] = [p.x, p.y]; 
+            if (!hasWritten) {
+                hasWritten = true;
+                btnCheck.disabled = false;
+            }
+        }
         function draw(e) { if (!isDrawing) return; e.preventDefault(); let p = e.touches ? getTouchPos(canvas, e) : getMousePos(canvas, e); ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.stroke();[lastX, lastY] = [p.x, p.y]; }
         function stopDrawing() { isDrawing = false; }
-        function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
         function setupCanvas() {
             ctx.strokeStyle = '#333'; ctx.lineWidth = 8; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
             canvas.addEventListener('mousedown', startDrawing); canvas.addEventListener('mousemove', draw); canvas.addEventListener('mouseup', stopDrawing); canvas.addEventListener('mouseout', stopDrawing);
             canvas.addEventListener('touchstart', startDrawing); canvas.addEventListener('touchmove', draw); canvas.addEventListener('touchend', stopDrawing);
         }
+        function clearCanvasAndReset() {
+             clearCanvas();
+             hasWritten = false;
+             btnCheck.disabled = true;
+        }
 
         function generateProblem() {
+            fruitsAreCorrect = false;
+            hasWritten = false;
+            btnCheck.disabled = true;
             feedbackEl.textContent = '';
             answerBoxEl.textContent = '?';
             answerBoxEl.classList.remove('text-green-500', 'text-red-500');
             basketEl.innerHTML = ''; source1El.innerHTML = ''; source2El.innerHTML = ''; disposalArea.innerHTML = '<span class="text-3xl text-red-500 pointer-events-none">🗑️ Buang ke sini</span>';
-            drawingInstructionEl.textContent = 'Sekarang, coba tulis jawabannya!';
+            drawingInstructionEl.textContent = '2. Tulis Jawabanmu';
             clearCanvas();
+            checkButtonsWrapper.classList.remove('hidden');
+            checkButtonsWrapper.classList.add('flex');
+            confirmationButtonsWrapper.classList.add('hidden');
+            instructionEl.textContent = `1. Ambil Buahnya`;
             
             if (currentMode === 'penjumlahan') {
                 num1IconEl.style.display = 'inline'; num2IconEl.style.display = 'inline';
@@ -260,7 +308,7 @@
                     source1El.appendChild(createFruit(fruit1, `f1-src-${i}`));
                     source2El.appendChild(createFruit(fruit2, `f2-src-${i}`));
                 }
-                instructionEl.textContent = `Ambil ${number1} ${fruit1.name} dan ${number2} ${fruit2.name}`;
+                instructionEl.textContent = `1. Ambil ${number1} ${fruit1.name} dan ${number2} ${fruit2.name}`;
                 currentNarration = `Ambil ${number1} ${fruit1.name} dan ${number2} ${fruit2.name}`;
                 num1IconEl.textContent = fruit1.emoji; num1TextEl.textContent = number1;
                 num2IconEl.textContent = fruit2.emoji; num2TextEl.textContent = number2;
@@ -273,7 +321,7 @@
                 number2 = Math.floor(Math.random() * (number1 - 1)) + 1;
                 fruit1 = FRUITS_CATALOG[Math.floor(Math.random() * FRUITS_CATALOG.length)];
                 correctAnswer = number1 - number2;
-                instructionEl.textContent = `Ambil ${number2} ${fruit1.name} dari keranjang!`;
+                instructionEl.textContent = `1. Ambil ${number2} ${fruit1.name} dari keranjang!`;
                 currentNarration = `${number1} ${fruit1.name} dikurang ${number2} ${fruit1.name} sama dengan berapa?`;
                 for (let i = 0; i < number1; i++) { basketEl.appendChild(createFruit(fruit1, `f-bsk-${i}`)); }
                 num1TextEl.textContent = number1; num2TextEl.textContent = number2;
@@ -297,55 +345,82 @@
 
         async function checkAnswer() {
             playSfx('click');
-            let isCorrect = false;
+            
+            if (!fruitsAreCorrect) {
+                let isFruitSetupCorrect = false;
+                if (currentMode === 'penjumlahan') {
+                    const fruitCounts = {};
+                    for (const fruitNode of basketEl.children) {
+                        const name = fruitNode.dataset.fruitName;
+                        fruitCounts[name] = (fruitCounts[name] || 0) + 1;
+                    }
+                    if (fruitCounts[fruit1.name] === number1 && fruitCounts[fruit2.name] === number2 && Object.keys(fruitCounts).length === 2) {
+                        isFruitSetupCorrect = true;
+                    }
+                } else { 
+                    if (basketEl.children.length === correctAnswer) {
+                        isFruitSetupCorrect = true;
+                    }
+                }
 
-            if (currentMode === 'penjumlahan') {
-                const fruitCounts = {};
-                for (const fruitNode of basketEl.children) {
-                    const name = fruitNode.dataset.fruitName;
-                    fruitCounts[name] = (fruitCounts[name] || 0) + 1;
+                if (isFruitSetupCorrect) {
+                    fruitsAreCorrect = true;
+                    btnCheck.disabled = true;
+                    btnNew.disabled = true;
+                    await startCountingSequence();
+                    promptFinalConfirmation();
+                } else {
+                    playSfx('incorrect');
+                    const feedbackText = 'Hmm, buah di keranjang belum benar. Coba perbaiki dulu ya!';
+                    feedbackEl.textContent = feedbackText;
+                    speak(feedbackText, true);
                 }
-                if (fruitCounts[fruit1.name] === number1 && fruitCounts[fruit2.name] === number2 && Object.keys(fruitCounts).length === 2) {
-                    isCorrect = true;
-                }
-            } else { 
-                if (basketEl.children.length === correctAnswer) {
-                    isCorrect = true;
-                }
-            }
-
-            if (isCorrect) {
-                btnCheck.disabled = true;
-                btnNew.disabled = true;
-                
-                await speak("Ayo hitung bersama!", true);
-                
-                const fruitsInBasket = Array.from(basketEl.children);
-                for (let i = 0; i < fruitsInBasket.length; i++) {
-                    const fruitNode = fruitsInBasket[i];
-                    fruitNode.classList.add('counting-active');
-                    await speak(String(i + 1), false);
-                    fruitNode.classList.remove('counting-active');
-                }
-                
-                playSfx('correct');
-                const feedbackText = `Benar! Jawabannya adalah ${correctAnswer}. Hebat!`;
-                feedbackEl.innerHTML = `Benar! Jawabannya adalah ${correctAnswer} 🎉`;
-                feedbackEl.className = 'text-lg text-center md:text-xl font-bold h-14 flex items-center justify-center text-green-500';
-                answerBoxEl.textContent = correctAnswer;
-                answerBoxEl.classList.add('text-green-500');
-                speak(feedbackText, true);
-                btnCheck.disabled = false;
-                btnNew.disabled = false;
-
             } else {
-                playSfx('incorrect');
-                const feedbackText = 'Hmm, belum pas. Coba lagi yuk!';
-                feedbackEl.textContent = 'Hmm, belum pas. Coba lagi yuk!';
-                feedbackEl.className = 'text-lg text-center md:text-xl font-bold h-14 flex items-center justify-center text-red-500';
-                answerBoxEl.textContent = '?';
-                speak(feedbackText, true);
+                showAppreciation();
             }
+        }
+        
+        async function startCountingSequence() {
+            await speak("Ayo hitung bersama!", true);
+            const fruitsInBasket = Array.from(basketEl.children);
+            for (let i = 0; i < fruitsInBasket.length; i++) {
+                const fruitNode = fruitsInBasket[i];
+                fruitNode.classList.add('counting-active');
+                await speak(String(i + 1), false);
+                fruitNode.classList.remove('counting-active');
+            }
+        }
+
+        function promptFinalConfirmation() {
+            const feedbackText = `Benar! Jawabannya adalah ${correctAnswer}. Apakah tulisanmu sudah sama?`;
+            feedbackEl.textContent = feedbackText;
+            speak(feedbackText, true);
+            answerBoxEl.textContent = correctAnswer;
+            answerBoxEl.classList.add('text-green-500');
+            checkButtonsWrapper.classList.add('hidden');
+            checkButtonsWrapper.classList.remove('flex');
+            confirmationButtonsWrapper.classList.remove('hidden');
+            confirmationButtonsWrapper.classList.add('flex');
+        }
+        
+        function showAppreciation() {
+            playSfx('correct');
+            feedbackEl.innerHTML = 'Kerja Bagus! Kamu Hebat! ⭐';
+            speak("Kerja Bagus! Kamu Hebat!", true);
+            for (let i = 0; i < 15; i++) {
+                const star = document.createElement('div');
+                star.innerHTML = '⭐';
+                star.className = 'star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.animationDuration = `${Math.random() * 2 + 2}s`;
+                star.style.animationDelay = `${Math.random() * 1}s`;
+                starContainer.appendChild(star);
+                setTimeout(() => star.remove(), 4000);
+            }
+            confirmationButtonsWrapper.classList.add('hidden');
+            confirmationButtonsWrapper.classList.remove('flex');
+            checkButtonsWrapper.classList.add('hidden');
+            btnNew.disabled = false;
         }
 
         function handleDragStart(e) { e.dataTransfer.setData('text/plain', e.target.id); setTimeout(() => e.target.classList.add('dragging'), 0); }
@@ -360,7 +435,9 @@
                     const id = e.dataTransfer.getData('text/plain'); const draggable = document.getElementById(id);
                     if (draggable) {
                         playSfx('drop');
-                        
+                        if(zone.id !== 'basket') {
+                            speechSynthesis.cancel();
+                        }
                         if (zone.id === 'basket' && currentMode === 'penjumlahan') {
                             const fruitName = draggable.dataset.fruitName;
                             const countInBasket = [...zone.children].filter(child => child.dataset.fruitName === fruitName).length;
@@ -369,7 +446,6 @@
                             const newCount = zone.children.length + 1;
                             speak(String(newCount), false);
                         }
-
                         if (zone.id === 'disposal-area' && zone.children.length === 1 && zone.children[0].tagName === 'SPAN') {
                             zone.innerHTML = '';
                         }
@@ -389,7 +465,10 @@
         btnPengurangan.addEventListener('click', () => { playSfx('click'); currentMode = 'pengurangan'; startGame(); });
         btnCheck.addEventListener('click', checkAnswer);
         btnNew.addEventListener('click', () => { playSfx('click'); generateProblem(); });
-        btnClearCanvas.addEventListener('click', () => { playSfx('click'); clearCanvas(); });
+        btnClearCanvas.addEventListener('click', () => {
+            playSfx('click');
+            clearCanvasAndReset();
+        });
         btnBack.addEventListener('click', () => {
             playSfx('click');
             speechSynthesis.cancel();
@@ -397,6 +476,21 @@
             menuScreen.classList.remove('hidden');
         });
         btnNarrate.addEventListener('click', () => speak(currentNarration));
+        btnConfirmYes.addEventListener('click', () => {
+            playSfx('click');
+            showAppreciation();
+        });
+        btnConfirmNo.addEventListener('click', () => {
+            playSfx('incorrect');
+            const feedbackText = "Oke, coba perbaiki tulisanmu ya.";
+            feedbackEl.textContent = feedbackText;
+            speak(feedbackText, true);
+            clearCanvasAndReset();
+            confirmationButtonsWrapper.classList.add('hidden');
+            confirmationButtonsWrapper.classList.remove('flex');
+            checkButtonsWrapper.classList.remove('hidden');
+            checkButtonsWrapper.classList.add('flex');
+        });
 
         window.addEventListener('DOMContentLoaded', () => {
             setupDropZones();
