@@ -37,11 +37,12 @@
              background-color: #fecaca !important;
              border-color: #ef4444 !important;
         }
-        .menu-button {
-            transition: transform 0.2s ease-in-out;
+        .mode-button {
+            transition: all 0.2s ease-in-out;
         }
-        .menu-button:hover {
-            transform: scale(1.05);
+        .mode-button.active {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
         }
         #drawing-canvas {
             border: 3px solid #cbd5e1;
@@ -65,65 +66,59 @@
 
     <div id="main-container" class="w-full max-w-5xl bg-white rounded-2xl shadow-2xl p-4 md:p-6 text-center">
         
-        <div id="menu-screen">
-            <h1 class="text-3xl md:text-5xl text-blue-600 mb-8">Petualangan Angka Ajaib</h1>
-            <h2 class="text-xl md:text-2xl text-gray-700 mb-6">Pilih permainan:</h2>
-            <div class="flex flex-col items-center gap-6">
-                <button id="btn-penjumlahan" class="menu-button w-full max-w-xs px-6 py-4 bg-yellow-400 hover:bg-yellow-500 text-white font-bold rounded-xl shadow-lg text-2xl md:text-3xl">Penjumlahan (+)</button>
-                <button id="btn-pengurangan" class="menu-button w-full max-w-xs px-6 py-4 bg-pink-400 hover:bg-pink-500 text-white font-bold rounded-xl shadow-lg text-2xl md:text-3xl">Pengurangan (-)</button>
-            </div>
+        <h1 class="text-2xl md:text-4xl text-blue-600 mb-4">Petualangan Angka Ajaib</h1>
+
+        <!-- Tombol Pilihan Mode Terintegrasi -->
+        <div class="flex justify-center gap-4 mb-6 border-b-2 pb-4">
+             <button id="btn-penjumlahan" class="mode-button w-full max-w-xs px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-white font-bold rounded-xl shadow-lg text-lg md:text-xl">Penjumlahan (+)</button>
+             <button id="btn-pengurangan" class="mode-button w-full max-w-xs px-4 py-2 bg-pink-400 hover:bg-pink-500 text-white font-bold rounded-xl shadow-lg text-lg md:text-xl">Pengurangan (-)</button>
         </div>
 
-        <div id="game-screen" class="hidden">
-            <div class="w-full flex justify-between items-center mb-2">
-                 <h1 class="text-xl md:text-2xl text-blue-600" id="game-title"></h1>
-                 <button id="btn-back" class="text-sm text-gray-500 hover:text-blue-600 px-3 py-1 rounded-lg bg-gray-100 hover:bg-gray-200">‹ Kembali</button>
-            </div>
-            
-            <div class="flex flex-col lg:flex-row lg:gap-6 lg:items-start">
-                <div class="lg:w-1/2 flex flex-col">
-                    <div id="problem-area" class="bg-gray-100 rounded-lg p-3 mb-4 text-3xl md:text-5xl text-gray-700 flex justify-center items-center gap-2 md:gap-4">
-                        <span id="num1"></span>
-                        <span id="operator"></span>
-                        <span id="num2"></span>
-                        <span>=</span>
-                        <span id="answer-box" class="bg-white w-20 h-20 md:w-24 md:h-24 rounded-lg flex items-center justify-center shadow-inner text-gray-400">?</span>
-                        <button id="btn-narrate" class="speaker-button">🔊</button>
+        <div class="flex flex-col lg:flex-row lg:gap-6 lg:items-start">
+            <!-- Kolom Kiri: Permainan Drag & Drop -->
+            <div class="lg:w-1/2 flex flex-col">
+                <div id="problem-area" class="bg-gray-100 rounded-lg p-3 mb-4 text-3xl md:text-5xl text-gray-700 flex justify-center items-center gap-2 md:gap-4">
+                    <span id="num1"></span>
+                    <span id="operator"></span>
+                    <span id="num2"></span>
+                    <span>=</span>
+                    <span id="answer-box" class="bg-white w-20 h-20 md:w-24 md:h-24 rounded-lg flex items-center justify-center shadow-inner text-gray-400">?</span>
+                    <button id="btn-narrate" class="speaker-button">🔊</button>
+                </div>
+                
+                <div id="workspace" class="flex flex-col gap-4 min-h-[250px]">
+                    <div id="source-area" class="grid grid-cols-2 gap-2">
+                        <div id="source1" class="drop-zone bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg p-2 min-h-[120px] flex flex-wrap gap-1 justify-center items-center"></div>
+                        <div id="source2" class="drop-zone bg-green-50 border-2 border-dashed border-green-300 rounded-lg p-2 min-h-[120px] flex flex-wrap gap-1 justify-center items-center"></div>
                     </div>
                     
-                    <div id="workspace" class="flex flex-col gap-4 min-h-[250px]">
-                        <div id="source-area" class="grid grid-cols-2 gap-2">
-                            <div id="source1" class="drop-zone bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg p-2 min-h-[120px] flex flex-wrap gap-1 justify-center items-center"></div>
-                            <div id="source2" class="drop-zone bg-green-50 border-2 border-dashed border-green-300 rounded-lg p-2 min-h-[120px] flex flex-wrap gap-1 justify-center items-center"></div>
-                        </div>
-                        
-                        <div id="target-area" class="flex justify-center items-center flex-col">
-                             <h2 id="instruction" class="text-lg md:text-xl text-gray-600 mb-2"></h2>
-                             <div id="basket" class="drop-zone w-full bg-orange-100 border-4 border-dashed border-orange-400 rounded-2xl p-2 min-h-[150px] flex flex-wrap gap-1 justify-center items-start"></div>
-                        </div>
+                    <div id="target-area" class="flex justify-center items-center flex-col">
+                         <h2 id="instruction" class="text-lg md:text-xl text-gray-600 mb-2"></h2>
+                         <div id="basket" class="drop-zone w-full bg-orange-100 border-4 border-dashed border-orange-400 rounded-2xl p-2 min-h-[150px] flex flex-wrap gap-1 justify-center items-start"></div>
+                    </div>
 
-                        <div id="disposal-wrapper" class="hidden mt-2">
-                            <div id="disposal-area" class="drop-zone w-full bg-red-100 border-4 border-dashed border-red-400 rounded-2xl p-2 min-h-[120px] flex flex-wrap gap-1 justify-center items-center">
-                                <span class="text-4xl text-red-500 pointer-events-none">🗑️ Buang ke sini</span>
-                            </div>
+                    <div id="disposal-wrapper" class="hidden mt-2">
+                        <div id="disposal-area" class="drop-zone w-full bg-red-100 border-4 border-dashed border-red-400 rounded-2xl p-2 min-h-[120px] flex flex-wrap gap-1 justify-center items-center">
+                            <span class="text-4xl text-red-500 pointer-events-none">🗑️ Buang ke sini</span>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="lg:w-1/2 flex flex-col items-center mt-6 lg:mt-0">
-                    <div id="drawing-area" class="w-full flex flex-col items-center">
-                        <h3 id="drawing-instruction" class="text-lg md:text-xl font-semibold text-gray-700 mb-2">Sekarang, coba tulis jawabannya!</h3>
-                        <canvas id="drawing-canvas" width="300" height="150"></canvas>
-                        <div class="flex justify-center gap-4 mt-3">
-                             <button id="btn-check" class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg shadow-lg text-lg md:text-xl">Cek Jawaban</button>
-                             <button id="btn-clear-canvas" class="px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg shadow-lg text-lg md:text-xl">Hapus</button>
-                        </div>
+            <!-- Kolom Kanan: Area Menggambar dan Kontrol -->
+            <div class="lg:w-1/2 flex flex-col items-center mt-6 lg:mt-0">
+                <div id="drawing-area" class="w-full flex flex-col items-center">
+                    <h3 id="drawing-instruction" class="text-lg md:text-xl font-semibold text-gray-700 mb-2">Sekarang, coba tulis jawabannya!</h3>
+                    <canvas id="drawing-canvas" width="300" height="150"></canvas>
+                    <div class="flex justify-center gap-4 mt-3">
+                         <button id="btn-check" class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg shadow-lg text-lg md:text-xl">Cek Jawaban</button>
+                         <button id="btn-clear-canvas" class="px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg shadow-lg text-lg md:text-xl">Hapus</button>
                     </div>
+                </div>
 
-                    <div class="mt-4 flex flex-col items-center justify-center gap-4 w-full">
-                        <div id="feedback" class="text-xl text-center md:text-2xl font-bold h-16 flex items-center justify-center"></div>
-                        <button id="btn-new" class="w-full max-w-xs md:w-auto px-8 py-4 bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-lg shadow-lg text-xl md:text-2xl">Soal Baru</button>
-                    </div>
+                <div class="mt-4 flex flex-col items-center justify-center gap-4 w-full">
+                    <div id="feedback" class="text-xl text-center md:text-2xl font-bold h-16 flex items-center justify-center"></div>
+                    <button id="btn-new" class="w-full max-w-xs md:w-auto px-8 py-4 bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-lg shadow-lg text-xl md:text-2xl">Soal Baru</button>
                 </div>
             </div>
         </div>
@@ -131,12 +126,8 @@
 
     <script>
         const mainContainer = document.getElementById('main-container');
-        const menuScreen = document.getElementById('menu-screen');
-        const gameScreen = document.getElementById('game-screen');
         const btnPenjumlahan = document.getElementById('btn-penjumlahan');
         const btnPengurangan = document.getElementById('btn-pengurangan');
-        const btnBack = document.getElementById('btn-back');
-        const gameTitleEl = document.getElementById('game-title');
         const num1El = document.getElementById('num1');
         const num2El = document.getElementById('num2');
         const operatorEl = document.getElementById('operator');
@@ -184,10 +175,8 @@
             } catch (error) { console.error("Error playing sound:", error); }
         }
 
-        // --- Logika Narasi Suara dengan Pemilihan Suara yang Diperbarui ---
         let indonesianVoice = null;
         let voicePromise = null;
-
         function getAvailableVoices() {
             if (!voicePromise) {
                 voicePromise = new Promise(resolve => {
@@ -208,36 +197,25 @@
             }
             return voicePromise;
         }
-
         async function initializeVoice() {
             if (indonesianVoice) return;
             const voices = await getAvailableVoices();
-            // Coba cari suara wanita berbahasa Indonesia dengan kriteria lebih luas
             indonesianVoice = voices.find(voice => voice.lang === 'id-ID' && /female|wanita|perempuan/i.test(voice.name)) 
-                              || voices.find(voice => voice.lang === 'id-ID'); // Fallback ke suara Indonesia manapun
-            
+                              || voices.find(voice => voice.lang === 'id-ID');
             if (indonesianVoice) {
                 console.log("Menggunakan suara:", indonesianVoice.name);
             } else {
                 console.warn("Suara Bahasa Indonesia tidak ditemukan, akan menggunakan suara default browser.");
             }
         }
-        
         async function speak(text) {
-            if (!('speechSynthesis' in window)) {
-                console.error('Browser tidak mendukung Text-to-Speech.');
-                return;
-            }
-            // Pastikan kita sudah mencoba mencari suara terbaik
+            if (!('speechSynthesis' in window)) return;
             await initializeVoice();
-            
             speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'id-ID';
             utterance.rate = 0.9;
-            if (indonesianVoice) {
-                utterance.voice = indonesianVoice;
-            }
+            if (indonesianVoice) utterance.voice = indonesianVoice;
             speechSynthesis.speak(utterance);
         }
         
@@ -266,21 +244,25 @@
             const randomFruit = fruits[Math.floor(Math.random() * fruits.length)];
 
             if (currentMode === 'penjumlahan') {
+                btnPenjumlahan.classList.add('active');
+                btnPengurangan.classList.remove('active');
                 if(number1 + number2 > 10) {
                     number2 = Math.max(1, Math.floor(Math.random() * (10 - number1)));
                 }
                 sourceArea.classList.remove('hidden');
                 disposalWrapper.classList.add('hidden');
-                correctAnswer = number1 + number2; operatorEl.textContent = '+'; gameTitleEl.textContent = 'Penjumlahan';
+                correctAnswer = number1 + number2; operatorEl.textContent = '+';
                 instructionEl.textContent = `Ayo gabungkan buahnya!`;
                 currentNarration = `${number1} ditambah ${number2} sama dengan berapa?`;
                 for (let i = 0; i < number1; i++) source1El.appendChild(createFruit(randomFruit, `fruit-s1-${i}`));
                 for (let i = 0; i < number2; i++) source2El.appendChild(createFruit(randomFruit, `fruit-s2-${i}`));
             } else { 
+                btnPengurangan.classList.add('active');
+                btnPenjumlahan.classList.remove('active');
                 sourceArea.classList.add('hidden');
                 disposalWrapper.classList.remove('hidden');
                 if (number1 < number2) [number1, number2] = [number2, number1];
-                correctAnswer = number1 - number2; operatorEl.textContent = '-'; gameTitleEl.textContent = 'Pengurangan';
+                correctAnswer = number1 - number2; operatorEl.textContent = '-';
                 instructionEl.textContent = `Ayo ambil ${number2} buah dari keranjang!`;
                 currentNarration = `${number1} dikurang ${number2} sama dengan berapa?`;
                 for (let i = 0; i < number1; i++) basketEl.appendChild(createFruit(randomFruit, `fruit-b-${i}`));
@@ -342,23 +324,21 @@
             });
         }
         
-        function startGame() {
-            menuScreen.classList.add('hidden');
-            gameScreen.classList.remove('hidden');
-            generateProblem();
-        }
-        
-        btnPenjumlahan.addEventListener('click', () => { playSfx('click'); currentMode = 'penjumlahan'; startGame(); });
-        btnPengurangan.addEventListener('click', () => { playSfx('click'); currentMode = 'pengurangan'; startGame(); });
+        btnPenjumlahan.addEventListener('click', () => { 
+            if (currentMode === 'penjumlahan') return;
+            playSfx('click'); 
+            currentMode = 'penjumlahan'; 
+            generateProblem(); 
+        });
+        btnPengurangan.addEventListener('click', () => { 
+            if (currentMode === 'pengurangan') return;
+            playSfx('click'); 
+            currentMode = 'pengurangan'; 
+            generateProblem(); 
+        });
         btnCheck.addEventListener('click', checkAnswer);
         btnNew.addEventListener('click', () => { playSfx('click'); generateProblem(); });
         btnClearCanvas.addEventListener('click', () => { playSfx('click'); clearCanvas(); });
-        btnBack.addEventListener('click', () => {
-            playSfx('click');
-            speechSynthesis.cancel();
-            gameScreen.classList.add('hidden');
-            menuScreen.classList.remove('hidden');
-        });
         btnNarrate.addEventListener('click', () => {
             speak(currentNarration);
         });
@@ -366,8 +346,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             setupDropZones();
             setupCanvas();
-            menuScreen.classList.remove('hidden');
-            gameScreen.classList.add('hidden');
+            generateProblem(); // Langsung generate soal pertama saat load
             mainContainer.addEventListener('click', () => {
                 initSfx();
                 initializeVoice();
